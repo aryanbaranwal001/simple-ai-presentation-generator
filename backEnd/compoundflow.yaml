@@ -1,0 +1,100 @@
+# Flow specification version
+version: "0.1.0"
+
+# Flow metadata and configuration
+metadata:
+  flow_type: "compound"
+  name: "flow-smart-presentation-generator"
+  description: "This flow gives you the best possible presentation slides based on your addPrompt."
+  author: "aryanbaranwal001"
+  tags: [productivity, academic, presentation]
+  private: false
+
+# Primary input definitions
+inputs:
+  topic:
+    type: string
+    description: "Your topic of presentation"
+    required: false
+    example: "Earth, Indigo's downfall in Q2 FY-25"
+
+  addPrompt:
+    type: string
+    description: "Your additional prompt for the presentation. Whatever research you have done, just put it here."
+    required: true
+    example: "Earth is the third planet from the Sun, uniquely supporting life with its diverse ecosystems and abundant water.\n It has a dynamic environment with a molten core, shifting tectonic plates, and a protective atmosphere.\n Earth’s natural resources and climate are essential for sustaining human civilization and biodiversity."
+
+  pages:
+    type: string
+    description: "How many pages do you want in your presentation"
+    required: false
+    example: "1, 2, 3, .."    
+
+  theme:
+    type: string
+    description: "Your theme of presentation"
+    required: false
+    example: "warm, cool"
+  
+  dimensions:
+    type: string
+    description: "Dimensions of pages of presentation"
+    required: false
+    example: "  This flow is designed to generate high-quality presentation slides based on your addPrompt. It leverages AI to create detailed content and decorate the slides according to your preferences."
+
+workflow:
+
+  first_flow:
+    type: "elemental"
+    flow_name: "aryanbaranwal001/ai-presentation-generator"
+    inputs:
+      topic: ${inputs.topic}
+      pages: ${inputs.pages}
+
+  # Custom processing stage - starts immediately (parallel to first_flow)
+  second_flow:
+    type: "custom"
+    depends_on: [first_flow]
+    inputs:
+      content: ${first_flow.output}
+      pages: ${inputs.pages}
+      theme: ${inputs.theme}
+      dimensions: ${inputs.dimensions}
+    model:
+      provider: "openai"
+      name: "gpt-4o"
+    prompt: |
+      based of the content given below {content} identify the color palette based on {theme} which would suit
+      this content prefectly. Then decorate and arrange the content in such a way that it looks good.
+      Also, make sure that the content is suitable for the given dimensions {dimensions} and number of pages = {pages}.
+      Also set the background color accordingly.
+      All of it should be done in tailwindcss. 
+      divide the pages in sections and decorate them accordingly.
+
+
+
+  # Waits for both first_flow and second_flow to complete
+third_flow:
+    type: "custom"
+    depends_on: [second_flow]
+    inputs:
+      content: ${second_flow.output}
+      addPrompt: ${inputs.addPrompt}  # Add missing input
+    model:
+      provider: "openai"
+      name: "gpt-4o"
+    prompt: |
+      Check whether the {content} looks good for the presentation or not. 
+      Verify if the prompts {addPrompt} are satisfied. Make necessary changes.
+
+# Output configuration
+output:
+  value:
+    - ${first_flow.output}
+    - ${second_flow.output}
+    - ${third_flow.output}
+
+# Flow documentation
+readme: |
+  # Smart Presentation Generator Flow
+
